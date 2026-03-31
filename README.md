@@ -9,14 +9,15 @@ using **TypeScript** with a **monorepo** structure.
 ## Overview
 
 The core idea is to **separate business logic** from all user
-interfaces.\
-Your CLI tool and your web API will both import and use the same shared
-library.
+interfaces.
 
-This ensures: - No duplicated logic\
-- Consistent behavior across interfaces\
-- Easy testing\
-- Clean long‑term maintainability
+The CLI tool and the web application will both use the same shared methods in the backend. They will both access these methods and functions via structured data and API calls.
+
+This structure should enforce and ensure: 
+- The CLI and the Web Application both act as GUIs
+- THe application **does not** duplicate any logic
+- The application functions are segmented and interact with eachother in a consistent way so that new functionality can be added incrementally and existing functionality can be easily modified
+- Easy testing
 
 ------------------------------------------------------------------------
 
@@ -25,11 +26,15 @@ This ensures: - No duplicated logic\
 ### **Hexagonal / Clean Architecture**
 
 The application is divided into: - **Core Layer** -- business logic,
-invariants, domain models\
-- **Application Layer** -- use cases and service functions\
-- **Interface Adapters** - CLI (Node.js) - HTTP API (Express, Fastify,
-or NestJS) - Web frontend (React/Next.js) - Database adapters (Postgres,
-MongoDB, SQLite, etc.)
+invariants, domain models
+- **Application Layer** 
+  - methods and service functions that handle structured data
+  - application features can be written in different languages depending on needs 
+- **Interface Adapters**: 
+  - CLI
+  - Web frontend
+  - HTTP API 
+  - Database adapters 
 
 Each adapter calls into the **shared core**, but the core depends on
 nothing external.
@@ -39,50 +44,57 @@ nothing external.
 ## Monorepo Overview
 
 The starter project contains:
-- `packages/core` — shared business logic & types
-- `apps/api` — Fastify TypeScript API server
-- `apps/cli` — Node.js CLI using Commander
+- `core` — shared business logic & types
+- `api` — API server
+- `frontend`— web application interface
+- `cli` — CLI/Terminal interface
+- `db` — database
 - `infra/` — Terraform examples & notes
 
 ## Monorepo Structure
 
     my-app/
-      packages/
-        core/           # All business logic and domain models
-          src/
-            services/
-            models/
-            utils/
-          package.json
+      core/           # All business logic and domain models
+        src/
+          services/
+          models/
+          utils/
+        package.json
 
-        cli/            # Command line tool
-          src/
-            commands/
-            index.ts
-          package.json
+      cli/            # Command line tool
+        src/
+          commands/
+          index.ts
+        package.json
 
-        api/            # Web API server
-          src/
-            routes/
-            server.ts
-          package.json
+      api/            # Web API server
+        src/
+          routes/
+          server.ts
+        package.json
 
-        frontend/            # Frontend (optional)
-          src/
-          package.json
-        
-      package.json
-      pnpm-workspace.yaml (or turbo.json)
+      frontend/            # Frontend (optional)
+        src/
+        package.json
+      
+      db/
+
+      infra/
 
 ------------------------------------------------------------------------
 
 ## Core Layer (Shared Logic)
+The core application should utilize the most appropriate tech stack for the job. Examplse are listed below. 
 
-- the application should utilize ES Modules (rather than commonJS)
-The `core` package contains: - Domain models - Validation logic -
-Use‑case functions (e.g., `createUser`, `generateReport`) - Reusable
-utilities
-- any utilities related to configuration should be in the core layer
+Methods and services in the core layer that can be packaged and run locally -- skipping the need for API calls -- should be setup as packages that can be exported and used in the CLI or React frontend.
+
+### Web, HTTP, API and User Input Related Application Functions
+Example services that should be handled using Typescript and Node:
+- API calls
+- User input handling, including validation
+- The typescript application should use pnpm as its package manager
+
+For web and HTTP related application methods, the application should use ES Modules (rather than commonJS). 
 
 Example:
 
@@ -100,32 +112,20 @@ export function createUser(data: CreateUserRequest) {
 }
 ```
 
-Both CLI and API will import this.
+### Large Internal Data Handling
+Examples of this might include DB queries and manipulation
+
+These methods will never be done locally because of the scale and complexity. These should be handled by Python on a server.
 
 ------------------------------------------------------------------------
 
 ## CLI Layer
-
-- Use **oclif** to build the CLI tool.
-
-Example command:
-
-``` ts
-#!/usr/bin/env node
-import { createUser } from "@my-app/core";
-
-console.log("Creating user...");
-const user = createUser({ email: "test@example.com", name: "Alice Example" });
-console.log("Created:", user);
-```
-
+- The CLI should be built using Rust. 
 - The CLI should be a thin wrapper with absolute minimal business logic. The only exception might be personal or proprietary data that shouldn't be transported up to a cloud environment. 
-- On build, the application should be built into a NPM package distribution. Provide instructions int he readme for how to use this.
-- oclif should be configured to run with ES Modules
+- On build, the application will be deployed (either locally or in a cloud environment) and an executable binary should be created that will be used for the CLI. 
+- The CLI should have a local config setup process to connect with the application (whether locally or in the cloud) and manage authenticaion.
+- The executable binaries should be determined based on the infrastructure commands that control the build.
 - The README should have instructions on how where to get the distributed binaries and how to install to the user's path
-- Use workspace:* in package.json dependencies
-- Make sure shared packages are compiled before running CLI.
-- Packaging (oclif pack) requires referencing built JS, not raw TS.
 
 ------------------------------------------------------------------------
 
@@ -133,18 +133,25 @@ console.log("Created:", user);
 
 - build the API layer using Fastify
 - The API should use authentication
-
-Again, all logic lives in `core`.
+- The API should automatically generate docs
 
 ------------------------------------------------------------------------
 
 ## Web Layer (Frontend)
 
-If you include a web UI (React/Next.js), it communicates only with the
-API server.
+The web layer should use Svelte with the SvelteKit so that mobile development is easy.
 
-This keeps the architecture clean and ensures compatibility with any
-future interface.
+------------------------------------------------------------------------
+
+## Database
+
+The databse should use postgresql with Prisma 
+
+------------------------------------------------------------------------
+
+## Infrastructure 
+
+Infrastructure deployment should be managed with Terraform
 
 ------------------------------------------------------------------------
 
@@ -249,12 +256,15 @@ resource "aws_ecr_repository" "api" {
 
 ## Tooling Overview
 
--   **PNPM workspaces**
+-   **Node package management**
+-   **UV for Python Package**
 -   **ESBuild & ES Modules** for fast builds\
 -   **TypeScript project references** for compile‑time efficiency
--   **pino** for local logging
+-   **Rust for the CLI** for CLI and binary packaging for distribution
+-   **Fastify for the API**
+-   **Svelte for the Web UI Framework**
+-   **Pino** for local logging
 -   **Cloudwatch?? Something Else?** for log shipping
--   **OCLIF** for CLI and binary packaging for distribution
 -   **Terraform** for deployment & CI/CD
 
 ------------------------------------------------------------------------
