@@ -268,3 +268,9 @@ resource "aws_ecr_repository" "api" {
 -   **Terraform** for deployment & CI/CD
 
 ------------------------------------------------------------------------
+
+## Ongoing Development
+
+API and UI Parity
+
+The CLI is a thin layer that references the UI. As features as added to either the UI or the CLI, those features should be replicated in the other. So if a new API endpoint is added to support a feature in the UI, generally speaking, a command should be add to the CLI to use the new API endpoint
