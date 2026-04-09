@@ -269,8 +269,22 @@ resource "aws_ecr_repository" "api" {
 
 ------------------------------------------------------------------------
 
-## Ongoing Development
+## Continuous Feature Development Guidance 
 
-API and UI Parity
+**API and UI Parity**
 
 The CLI is a thin layer that references the UI. As features as added to either the UI or the CLI, those features should be replicated in the other. So if a new API endpoint is added to support a feature in the UI, generally speaking, a command should be add to the CLI to use the new API endpoint
+
+**CLI Design Principles**
+
+- We should generally follow the POSIX utility guidelines for CLI commands, options, inputs and formatting found here: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
+- You CLI should display help when missing or incorrect parameters in addition to the error message if any.
+- You should use - for a single letter flag or option and -- for a long option, for instance -a and --all
+- All programs should support two standard options: -V --version and -h --help.
+  - -h and --help => Give usage message and exit 0
+  - -V and --version => Show program version and exit 0
+- standardize information and colors
+- Commands that are missing required information should alert the user of the missing information, show the help for the command and ask the user if they'd like to enter the information interactively
+- whenever a user has a interactive input, an example of acceptable input should be provided
+- input should be checked when it's entered and users should be prompted to re-enter if the check fails
+- When there is no log output and a longer running command is used, the CLI utility should display a progress graphic so the user knows somethign is happening
